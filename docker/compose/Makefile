@@ -14,6 +14,9 @@ endef
 
 $(foreach node,$(NODES),$(eval $(call interactive_shell_template,$(node))))
 
+# iTerm2 && MacOSX only
+iterms: ; osascript utils/iterm2-interactive.scpt $(shell pwd)
+
 help:
 	@echo
 	@echo "Available targets:"
