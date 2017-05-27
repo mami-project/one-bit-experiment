@@ -1,0 +1,32 @@
+---
+-
+ - Address A
+ - Port A
+ - Address B
+ - Port B
+ - Packets
+ - Bytes
+ - Packets A → B
+ - Bytes A → B
+ - Packets B → A
+ - Bytes B → A
+ - Rel Start
+ - Duration
+ - Bits/s A → B
+ - Bits/s B → A
+-
+ - 192.168.1.5
+ - 62858
+ - 79.54.202.67
+ - 59050
+ - 1892
+ - 302165
+ - 1892
+ - 302165
+ - 0
+ - 0
+ - 0
+ - 37.82902
+ - 63901.2060053366
+ - 0
+

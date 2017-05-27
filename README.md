@@ -13,10 +13,10 @@ The authors believe that, by making the experiments trivial to replicate, a sign
 The open-source nature of the framework encourages independent groups to evolve the framework and maybe contribute their changes back upstream.
 
 One per section:
-Section … provides a brief intro on QoE in the 3GPP suite.
+Section TODO provides a brief intro on QoE in the 3GPP suite.
 The cooperative and non-cooperative schemes are based on [draft-you-tsvwg-latency-loss-tradeoff] and Active Queue Management (AQM) techniques [TODO-REFs] respectively.
 The measures will be taken at varying levels of congestion in the radio access network (RAN).
-The modelling of flows that will be benchmarked for QoE as well as the background traffic is discussed in section …
+The modelling of flows that will be benchmarked for QoE as well as the background traffic is discussed in section TODO
 
 
 # QoE in 3GPP
@@ -31,7 +31,9 @@ When a device attaches to the mobile network, it is given a so-called *default* 
 Pen and paper modelling done by B-L colleagues
 
 # Baseline Performance
-todo
+An user is watching a live video stream, is having (video) call, or is playing an online multiplayer video game while attached to the mobile network.
+We want to measure how her experience changes varying the congestion level in the RAN.
+In the baseline experiment, the network is doing no traffic management.
 
 # Explicit Cooperation with 1-bit
 todo
