@@ -1,5 +1,5 @@
 on run argv
-  set boxes to {"enb", "pcap-mobile", "tg-mobile", "sut-mobile", "tg-inet", "pgw", "sut-inet"}
+  set boxes to {"enb-traffic-shaper", "tg-sgilan", "tg-mobile", "sut-sgilan", "enb-downstream-sched", "enb-upstream-sched", "sut-mobile"}
   set cmd to "env PATH=/usr/bin:/usr/local/bin make -C " & item 1 of argv
   tell application "iTerm2"
     create window with default profile

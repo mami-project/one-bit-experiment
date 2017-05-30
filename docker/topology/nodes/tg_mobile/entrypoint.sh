@@ -3,14 +3,12 @@
 set -eux
 
 readonly GW="$1"
-readonly DST_SUBNET_1="$2"
-readonly DST_SUBNET_2="$3"
+readonly DST_SUBNET="$2"
 
-# Add routes to core and SGi-LAN via eNB
-ip route add ${DST_SUBNET_1} via ${GW}
-ip route add ${DST_SUBNET_2} via ${GW}
+# Add routes to SGi-LAN via eNB
+ip route add ${DST_SUBNET} via ${GW}
 
-readonly NODE_NAME="$4"
+readonly NODE_NAME="$3"
 
 # prompt
 echo export PS1="\"[${NODE_NAME}] \\W # \"" > /root/.bashrc

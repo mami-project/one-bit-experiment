@@ -1,24 +1,26 @@
-# See also:
-#   - depends_on and healthcheck for modelling dependencies
-#   - logging to specify how to log (e.g. syslog) and where is your log sink
-#   - sysctls and ulimits to change kernel/runtime settings
+# NOTE conventionally, service names and container_names are the same modulo
+# s/_/-/g.  This convention is used by the Makefile to automate the process of
+# gathering the node names and creating targets for interactive shells.
+#
+# TODO order network attachments right-to-left (or viceversa, but in a
+# consistent way) so that we can make safe assumptions on the naming of the
+# interfaces when applying queueing disciplines.
 version: '3'
 
 services:
   # Traffic generator in the (S)Gi-LAN
-  tg_inet:
+  tg_sgilan:
     build:
-      context: nodes/tg_inet
-    entrypoint: /root/entrypoint.sh ${PGW_INET_ADDR} ${CORE_SUBNET} ${RAN_SUBNET} "tg-inet"
-    container_name: tg-inet
+      context: nodes/tg_sgilan
+    entrypoint: /root/entrypoint.sh ${PGW_SGILAN_ADDR} ${RAN_SUBNET} "tg-sgilan"
+    container_name: tg-sgilan
     networks:
       sgilan:
-        ipv4_address: ${TG_INET_ADDR}
+        ipv4_address: ${TG_SGILAN_ADDR}
     extra_hosts:
       - "tg-mobile:${TG_RAN_ADDR}" 
       - "sut-mobile:${SUT_RAN_ADDR}" 
       - "pcap-mobile:${PCAP_RAN_ADDR}"
-      - "enb:${ENB_CORE_ADDR}" 
     volumes:
       - ./volumes/scripts:/root/scripts
     cap_add:
@@ -28,19 +30,18 @@ services:
     tty: true
 
   # System Under Test (SUT) in the (S)Gi-LAN
-  sut_inet:
+  sut_sgilan:
     build:
-      context: nodes/sut_inet
-    entrypoint: /root/entrypoint.sh ${PGW_INET_ADDR} ${CORE_SUBNET} ${RAN_SUBNET} "sut-inet"
-    container_name: sut-inet
+      context: nodes/sut_sgilan
+    entrypoint: /root/entrypoint.sh ${PGW_SGILAN_ADDR} ${RAN_SUBNET} "sut-sgilan"
+    container_name: sut-sgilan
     networks:
       sgilan:
-        ipv4_address: ${SUT_INET_ADDR}
+        ipv4_address: ${SUT_SGILAN_ADDR}
     extra_hosts:
       - "tg-mobile:${TG_RAN_ADDR}"
       - "sut-mobile:${SUT_RAN_ADDR}"
       - "pcap-mobile:${PCAP_RAN_ADDR}"
-      - "enb:${ENB_CORE_ADDR}"
     volumes:
       - ./volumes/scripts:/root/scripts
     cap_add:
@@ -49,25 +50,19 @@ services:
     stdin_open: true
     tty: true
 
-  # Packet gateway, bridging (S)Gi-LAN and mobile packet core
-  pgw:
+  # eNB downstream scheduler in the eNB/PGW super-node
+  enb_downstream_sched:
     build:
-      context: nodes/pgw
-    entrypoint: /root/entrypoint.sh ${RAN_SUBNET} ${ENB_CORE_ADDR} ${PGW_CORE_ADDR} "pgw"
-    container_name: pgw
+      context: nodes/enb_downstream_sched
+    entrypoint: /root/entrypoint.sh ${RAN_SUBNET} ${ENB_TRAFFIC_SHAPER_NORTH_ADDR} "enb-downstream-sched"
+    container_name: enb-downstream-sched
     networks:
       sgilan:
         aliases:
-          - pgw-inet
-        ipv4_address: ${PGW_INET_ADDR}
-      core:
-        aliases:
-          - pgw-core
-        ipv4_address: ${PGW_CORE_ADDR}
-    extra_hosts:
-      - "tg-mobile:${TG_RAN_ADDR}"
-      - "sut-mobile:${SUT_RAN_ADDR}"
-      - "pcap-mobile:${PCAP_RAN_ADDR}"
+          - pgw-sgilan
+        ipv4_address: ${PGW_SGILAN_ADDR}
+      enb-north:
+        ipv4_address: ${ENB_DOWNSTREAM_SCHED_NORTH_ADDR}
     volumes:
       - ./volumes/scripts:/root/scripts
     sysctls:
@@ -78,32 +73,46 @@ services:
     stdin_open: true
     tty: true
 
-  # ENodeB, bridging mobile packet core and RAN
-  enb:
+  # eNB traffic shaper in the eNB/PGW super-node (enforces up and downstream
+  # bandwidth and latency)
+  enb_traffic_shaper:
     build:
-      context: nodes/enb
-    entrypoint: /root/entrypoint.sh ${SGILAN_SUBNET} ${PGW_CORE_ADDR} ${ENB_CORE_ADDR} "enb"
-    env_file: .env
-    container_name: enb
+      context: nodes/enb_traffic_shaper
+    entrypoint: /root/entrypoint.sh ${SGILAN_SUBNET} ${ENB_DOWNSTREAM_SCHED_NORTH_ADDR} ${RAN_SUBNET} ${ENB_UPSTREAM_SCHED_SOUTH_ADDR} "enb-traffic-shaper"
+    container_name: enb-traffic-shaper
     networks:
-      core:
-        aliases:
-          - enb-core
-        ipv4_address: ${ENB_CORE_ADDR}
+      enb-north:
+        ipv4_address: ${ENB_TRAFFIC_SHAPER_NORTH_ADDR}
+      enb-south:
+        ipv4_address: ${ENB_TRAFFIC_SHAPER_SOUTH_ADDR}
+    volumes:
+      - ./volumes/scripts:/root/scripts
+    sysctls:
+      net.ipv4.ip_forward: 1
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    stdin_open: true
+    tty: true
+
+  # eNB upstream scheduler in the eNB/PGW super-node
+  enb_upstream_sched:
+    build:
+      context: nodes/enb_upstream_sched
+    entrypoint: /root/entrypoint.sh ${SGILAN_SUBNET} ${ENB_TRAFFIC_SHAPER_SOUTH_ADDR} "enb-upstream-sched"
+    container_name: enb-upstream-sched
+    networks:
       ran:
-        aliases:
-          - enb-ran
         ipv4_address: ${ENB_RAN_ADDR}
-    extra_hosts:
-      - "tg-inet:${TG_INET_ADDR}" 
-      - "sut-inet:${SUT_INET_ADDR}" 
+      enb-south:
+        ipv4_address: ${ENB_UPSTREAM_SCHED_SOUTH_ADDR}
     volumes:
       - ./volumes/scripts:/root/scripts
+    sysctls:
+      net.ipv4.ip_forward: 1
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN
-    sysctls:
-      net.ipv4.ip_forward: 1
     stdin_open: true
     tty: true
 
@@ -111,15 +120,14 @@ services:
   sut_mobile:
     build:
       context: nodes/sut_mobile
-    entrypoint: /root/entrypoint.sh ${ENB_RAN_ADDR} ${CORE_SUBNET} ${SGILAN_SUBNET} "sut-mobile"
+    entrypoint: /root/entrypoint.sh ${ENB_RAN_ADDR} ${SGILAN_SUBNET} "sut-mobile"
     container_name: sut-mobile
     networks:
       ran:
         ipv4_address: ${SUT_RAN_ADDR}
     extra_hosts:
-      - "tg-inet:${TG_INET_ADDR}" 
-      - "sut-inet:${SUT_INET_ADDR}" 
-      - "pgw:${PGW_CORE_ADDR}" 
+      - "tg-sgilan:${TG_SGILAN_ADDR}" 
+      - "sut-sgilan:${SUT_SGILAN_ADDR}" 
     volumes:
       - ./volumes/scripts:/root/scripts
     cap_add:
@@ -132,15 +140,14 @@ services:
   tg_mobile:
     build:
       context: nodes/tg_mobile
-    entrypoint: /root/entrypoint.sh ${ENB_RAN_ADDR} ${CORE_SUBNET} ${SGILAN_SUBNET} "tg-mobile"
+    entrypoint: /root/entrypoint.sh ${ENB_RAN_ADDR} ${SGILAN_SUBNET} "tg-mobile"
     container_name: tg-mobile
     networks:
       ran:
         ipv4_address: ${TG_RAN_ADDR}
     extra_hosts:
-      - "tg-inet:${TG_INET_ADDR}" 
-      - "sut-inet:${SUT_INET_ADDR}" 
-      - "pgw:${PGW_CORE_ADDR}" 
+      - "tg-sgilan:${TG_SGILAN_ADDR}" 
+      - "sut-sgilan:${SUT_SGILAN_ADDR}" 
     volumes:
       - ./volumes/scripts:/root/scripts
     cap_add:
@@ -149,36 +156,40 @@ services:
     stdin_open: true
     tty: true
 
-  # Packet capture node in the RAN 
-  pcap_mobile:
-    build:
-      context: nodes/pcap_mobile
-    entrypoint: /root/entrypoint.sh "pcap-mobile"
-    container_name: pcap-mobile
-    networks:
-      ran:
-        ipv4_address: ${PCAP_RAN_ADDR}
-    extra_hosts:
-      - "tg-inet:${TG_INET_ADDR}" 
-      - "sut-inet:${SUT_INET_ADDR}" 
-      - "pgw:${PGW_CORE_ADDR}" 
-    volumes:
-      - ./volumes/captures:/tmp/captures
-    cap_add:
-      - NET_ADMIN
-      - SYS_ADMIN
-    stdin_open: true
-    tty: true
+#   # Packet capture node in the RAN 
+#   pcap_mobile:
+#     build:
+#       context: nodes/pcap_mobile
+#     entrypoint: /root/entrypoint.sh "pcap-mobile"
+#     container_name: pcap-mobile
+#     networks:
+#       ran:
+#         ipv4_address: ${PCAP_RAN_ADDR}
+#     extra_hosts:
+#       - "tg-sgilan:${TG_SGILAN_ADDR}" 
+#       - "sut-sgilan:${SUT_SGILAN_ADDR}" 
+#       - "pgw:${PGW_CORE_ADDR}" 
+#     volumes:
+#       - ./volumes/captures:/tmp/captures
+#     cap_add:
+#       - NET_ADMIN
+#       - SYS_ADMIN
+#     stdin_open: true
+#     tty: true
 
 networks:
   ran:
     ipam:
       config:
         - subnet: ${RAN_SUBNET}
-  core:
+  enb-north:
     ipam:
       config:
-        - subnet: ${CORE_SUBNET}
+        - subnet: ${ENB_NORTH_SUBNET}
+  enb-south:
+    ipam:
+      config:
+        - subnet: ${ENB_SOUTH_SUBNET}
   sgilan:
     ipam:
       config:
