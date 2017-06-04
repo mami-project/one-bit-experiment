@@ -4,11 +4,13 @@
 # - The Lo class/bearer with a filter on DSCP 000001
 # - The La class/bearer with a filter on DSCP 000101
 # - A default class/bearer which catches all the remaining traffic
+#
+# There is one LoLa scheduler for each direction (up- and down-stream).
 
-set -exu
+set -e
 set -o pipefail
 
-readonly IFACE="eth0"
+readonly CONF="./lola-sched.conf"
 
 # Unmarked traffic class (no delay budget)
 readonly DEFAULT_CLASS_ID="999"
@@ -19,7 +21,11 @@ readonly LO_DSCP_CODE="0x04"
 readonly LA_CLASS_ID="100"
 readonly LA_DSCP_CODE="0x14"
 
+# TODO hfsc params
+
+
 cleanup() {
+  echo Removing root qdisc from ${IFACE}
   tc qdisc del dev ${IFACE} root || true
 }
 
@@ -66,17 +72,54 @@ add_lola_child() {
     match ip tos ${dscp} 0xff flowid 1:${class_id}
 
   tc qdisc add dev ${iface} parent 1:${class_id} handle ${class_id} \
-    sfq quantum 1500 perturb 10
+    sfq quantum 1500 perturb 120
+}
+
+start() {
+  echo Adding LoLa sched on ${IFACE}
+  add_root ${IFACE} ${DEFAULT_CLASS_ID} ${BW}
+  add_lola_child ${IFACE} ${LA_CLASS_ID} ${BW} ${BW_SHARE} ${LA_DELAY} ${LA_DSCP_CODE}
+  add_lola_child ${IFACE} ${LO_CLASS_ID} ${BW} ${BW_SHARE} ${LO_DELAY} ${LO_DSCP_CODE}
+  add_dflt_child ${IFACE} ${DEFAULT_CLASS_ID} ${BW} ${BW_SHARE}
+}
+
+stop() {
+  cleanup
+}
+
+status() {
+  for cmd in qdisc class filter
+  do
+    echo ">> ${IFACE}::${cmd}"
+    tc -s ${cmd} show dev ${IFACE}
+  done
+}
+
+read_conf() {
+  echo Reading configuration from "${CONF}"
+  source "${CONF}"
 }
 
 main() {
-  cleanup
-  add_root ${IFACE} ${DEFAULT_CLASS_ID} 100mbit
-  add_lola_child ${IFACE} ${LA_CLASS_ID} 100mbit 33mbit 100ms ${LA_DSCP_CODE}
-  add_lola_child ${IFACE} ${LO_CLASS_ID} 100mbit 33mbit 300ms ${LO_DSCP_CODE}
-  add_dflt_child ${IFACE} ${DEFAULT_CLASS_ID} 100mbit 33mbit
+  read_conf
+
+  case "$1" in
+    start)
+      start
+      ;;
+    stop)
+      stop
+      ;;
+    status)
+      status
+      ;;
+    *)
+      echo "Usage: $(basename $0) {start|stop|status}"
+      exit 1
+      ;;
+  esac
 }
 
-main
+main "$@"
 
 # vim: ai ts=2 sw=2 et sts=2 ft=sh

@@ -15,40 +15,33 @@
 #   - uplink: 20ms
 # [1] (https://www.itu.int/en/ITU-T/Workshops-and-Seminars/qos/072014/Documents/Presentations/S2P2_Joachim-Pomy.ppt)
 
-set -eu
+set -e
 set -o pipefail
 
-declare -rA IFACES=(
-  [uplink]=eth0
-  [downlink]=eth1
-)
-
-toupper() {
-  echo -n $* | tr '[a-z]' '[A-Z]'
-}
+readonly CONF="./lte.conf"
 
 cleanup() {
   for k in "${!IFACES[@]}"
   do
     local iface=${IFACES[$k]}
-    echo "removing qdiscs on ${k}({$iface})"
+    echo "Removing qdiscs on ${k}({$iface})"
     tc qdisc del dev ${iface} root || true
   done
 }
 
-show() {
+status() {
   for k in "${!IFACES[@]}"
   do
     local iface=${IFACES[${k}]}
     for cmd in qdisc class filter
     do
-      echo ">> ${iface}(${k})::$(toupper ${cmd})"
+      echo ">> ${iface}(${k})::${cmd}"
       tc -s ${cmd} show dev ${iface}
     done
   done
 }
 
-shape_prev() {
+shape() {
   local iface="$1"
   local bandwidth="$2"
   local latency="$3"
@@ -58,7 +51,7 @@ shape_prev() {
   tc qdisc add dev ${iface} parent 1:10 handle 10:0 netem delay ${latency}
 }
 
-shape() {
+delayonly() {
   local iface="$1"
   local latency="$2"
 
@@ -69,22 +62,45 @@ shape() {
 }
 
 shape_uplink() {
-  shape_prev ${IFACES[uplink]} 50mbit 20ms
-#  shape ${IFACES[uplink]} 20ms
+  echo "Shaping uplink (${IFACES[downlink]})"
+  shape ${IFACES[uplink]} ${UL_BW} ${UL_DELAY}
 }
 
 shape_downlink() {
-  shape_prev ${IFACES[downlink]} 100mbit 12ms
-#  shape ${IFACES[downlink]} 12ms
+  echo "Shaping downlink (${IFACES[downlink]})"
+  shape ${IFACES[downlink]} ${DL_BW} ${DL_DELAY}
+}
+
+start() {
+  shape_uplink
+  shape_downlink
+}
+
+stop() {
+  cleanup
 }
 
 main() {
-  cleanup
-  shape_uplink
-  shape_downlink
-  show
+  echo Reading configuration from "${CONF}"
+  source "${CONF}"
+
+  case "$1" in
+    start)
+      start
+      ;;
+    stop)
+      stop
+      ;;
+    status)
+      status
+      ;;
+    *)
+      echo "Usage: $(basename $0) {start|stop|status}"
+      exit 1
+      ;;
+  esac
 }
 
-main
+main "$@"
 
 # vim: ai ts=2 sw=2 et sts=2 ft=sh

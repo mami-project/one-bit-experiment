@@ -22,7 +22,7 @@ services:
       - "sut-mobile:${SUT_RAN_ADDR}" 
       - "pcap-mobile:${PCAP_RAN_ADDR}"
     volumes:
-      - ./volumes/scripts:/root/scripts
+      - ./volumes:/root/share
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN
@@ -43,7 +43,7 @@ services:
       - "sut-mobile:${SUT_RAN_ADDR}"
       - "pcap-mobile:${PCAP_RAN_ADDR}"
     volumes:
-      - ./volumes/scripts:/root/scripts
+      - ./volumes:/root/share
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN
@@ -64,7 +64,7 @@ services:
       enb-north:
         ipv4_address: ${ENB_DOWNSTREAM_SCHED_NORTH_ADDR}
     volumes:
-      - ./volumes/scripts:/root/scripts
+      - ./volumes:/root/share
     sysctls:
       net.ipv4.ip_forward: 1
     cap_add:
@@ -86,7 +86,7 @@ services:
       enb-south:
         ipv4_address: ${ENB_TRAFFIC_SHAPER_SOUTH_ADDR}
     volumes:
-      - ./volumes/scripts:/root/scripts
+      - ./volumes:/root/share
     sysctls:
       net.ipv4.ip_forward: 1
     cap_add:
@@ -107,7 +107,7 @@ services:
       enb-south:
         ipv4_address: ${ENB_UPSTREAM_SCHED_SOUTH_ADDR}
     volumes:
-      - ./volumes/scripts:/root/scripts
+      - ./volumes:/root/share
     sysctls:
       net.ipv4.ip_forward: 1
     cap_add:
@@ -129,7 +129,7 @@ services:
       - "tg-sgilan:${TG_SGILAN_ADDR}" 
       - "sut-sgilan:${SUT_SGILAN_ADDR}" 
     volumes:
-      - ./volumes/scripts:/root/scripts
+      - ./volumes:/root/share
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN
@@ -149,7 +149,7 @@ services:
       - "tg-sgilan:${TG_SGILAN_ADDR}" 
       - "sut-sgilan:${SUT_SGILAN_ADDR}" 
     volumes:
-      - ./volumes/scripts:/root/scripts
+      - ./volumes:/root/share
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN
@@ -170,7 +170,7 @@ services:
 #       - "sut-sgilan:${SUT_SGILAN_ADDR}" 
 #       - "pgw:${PGW_CORE_ADDR}" 
 #     volumes:
-#       - ./volumes/captures:/tmp/captures
+#       - ./volumes:/root/share
 #     cap_add:
 #       - NET_ADMIN
 #       - SYS_ADMIN

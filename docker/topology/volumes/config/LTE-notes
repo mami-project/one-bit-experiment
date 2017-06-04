@@ -1,0 +1,10 @@
+- TODO get precise reference (I took this info from Vz wireless)
+
+USA (Cat 4)
+- channel: 20MHz
+- antenna: 2x2
+- uplink peak: 50-75.4Mbps 
+- uplink median per UE: 5Mbps
+- downlink peak: 101-150Mbps 
+- downlink median per UE: 12Mbps
+- latency: 5ms (TODO variance)
