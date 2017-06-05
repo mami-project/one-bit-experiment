@@ -1,5 +1,4 @@
-# Linux v 4.4.59 (confusingly uname reports 4.9.27)
-
+# Linux v 4.4.59
 FROM alpine:3.5
 
 RUN apk add --no-cache \
@@ -12,7 +11,6 @@ RUN apk add --no-cache \
       iproute2 \
       iproute2-doc \
       iputils \
-      linux-vanilla \
       man \
       tcpdump \
       util-linux
