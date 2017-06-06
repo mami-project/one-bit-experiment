@@ -31,6 +31,7 @@ iperf3 --client ${SRV} \
        --parallel ${NFLOWS} \
        --tos ${TOS} \
        --json \
+       --get-server-output \
        --logfile "${LOGFILE}"
 
 # vim: ai ts=2 sw=2 et sts=2 ft=sh

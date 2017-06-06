@@ -7,84 +7,89 @@ Extract iperf data from json blob and format for gnuplot.
 import json
 import os
 import sys
+import argparse
 
-from optparse import OptionParser
+class Iperf3ToGnuplotException(Exception):
+    pass
 
-import pprint
-# for debugging, so output to stderr to keep verbose
-# output out of any redirected stdout.
-pp = pprint.PrettyPrinter(indent=4, stream=sys.stderr)
+def get_t0(json):
+    """Get baseline time in UNIX format"""
+    return json['start']['timestamp']['timesecs']
 
+def get_test_type(json):
+    return json['start']['test_start']['protocol']
 
-def generate_output(iperf, options):
-    """Do the actual formatting."""
-    for i in iperf.get('intervals'):
-        for ii in i.get('streams'):
-            if options.verbose:
-                pp.pprint(ii)
-            row = '{0} {1} {2} {3} {4}\n'.format(
-                round(float(ii.get('start')), 4),
-                ii.get('bytes'),
-                # to Gbits/sec
-                round(float(ii.get('bits_per_second')) / (1000*1000*1000), 3),
-                ii.get('retransmits'),
-                round(float(ii.get('snd_cwnd')) / (1000*1000), 2)
+def generate_csv_for_udp_test(json, options):
+    """CSV format a UDP report using server view"""
+    csv_header = '# {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}\n'.format(
+        'timestamp',
+        'socket',
+        'bytes_transferred',
+        'bits_per_second',
+        'packets',
+        'lost_packets',
+        'lost_percent',
+        'jitter_ms',
+    )
+    yield csv_header
+
+    t0 = get_t0(json['server_output_json'])
+
+    for interval in json['server_output_json']['intervals']:
+        for stream in interval['streams']:
+            abs_ts = t0 + stream['start']
+            row = '{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}\n'.format(
+                abs_ts,
+                stream['socket'],
+                stream['bytes'],
+                stream['bits_per_second'],
+                stream['packets'],
+                stream['lost_packets'],
+                stream['lost_percent'],
+                stream['jitter_ms']
             )
             yield row
 
+def generate_csv_for_tcp_test(json, options):
+    """CSV format a TCP report using client view"""
+    csv_header = '# {0}, {1}, {2}, {3}, {4}, {5}, {6}\n'.format(
+        'timestamp',
+        'socket',
+        'bytes_transferred',
+        'bits_per_second',
+        'retransmits',
+        'snd_cwnd_bytes',
+        'rtt_ms'
+    )
+    yield csv_header
 
-def summed_output(iperf, options):
-    """Format summed output."""
+    t0 = get_t0(json)
 
-    for i in iperf.get('intervals'):
-
-        row_header = None
-
-        byte = list()
-        bits_per_second = list()
-        retransmits = list()
-        snd_cwnd = list()
-
-        for ii in i.get('streams'):
-            if options.verbose:
-                pp.pprint(i)
-            # grab the first start value
-            if row_header is None:
-                row_header = round(float(ii.get('start')), 2)
-            # aggregate the rest of the values
-            byte.append(ii.get('bytes'))
-            bits_per_second.append(float(ii.get('bits_per_second')) / (1000*1000*1000))
-            retransmits.append(ii.get('retransmits'))
-            snd_cwnd.append(float(ii.get('snd_cwnd')) / (1000*1000))
-
-        row = '{h} {b} {bps} {r} {s}\n'.format(
-            h=row_header,
-            b=sum(byte),
-            bps=round(sum(bits_per_second), 3),
-            r=sum(retransmits),
-            s=round(sum(snd_cwnd) / len(snd_cwnd), 2)
-        )
-
-        yield row
-
+    for interval in json['intervals']:
+        for stream in interval['streams']:
+            abs_ts = t0 + stream['start']
+            rtt_ms = stream['rtt'] / 1000
+            row = '{0}, {1}, {2}, {3}, {4}, {5}, {6}\n'.format(
+                abs_ts,
+                stream['socket'],
+                stream['bytes'],
+                stream['bits_per_second'],
+                stream['retransmits'],
+                stream['snd_cwnd'],
+                rtt_ms
+            )
+            yield row
 
 def main():
-    """Execute the read and formatting."""
-    usage = '%prog [ -f FILE | -o OUT | -v ]'
-    parser = OptionParser(usage=usage)
-    parser.add_option('-f', '--file', metavar='FILE',
-                      type='string', dest='filename',
-                      help='Input filename.')
-    parser.add_option('-o', '--output', metavar='OUT',
-                      type='string', dest='output',
-                      help='Optional file to append output to.')
-    parser.add_option('-s', '--sum',
-                      dest='summed', action='store_true', default=False,
-                      help='Summed version of the output.')
-    parser.add_option('-v', '--verbose',
-                      dest='verbose', action='store_true', default=False,
-                      help='Verbose debug output to stderr.')
-    options, _ = parser.parse_args()
+    """Convert iperf3 reports from JSON to CSV"""
+    parser = argparse.ArgumentParser(description='Convert iperf3 reports from JSON to CSV.')
+    parser.add_argument('-f', '--file', metavar='FILE',
+                       dest='filename',
+                       help='Input filename.')
+    parser.add_argument('-o', '--output', metavar='OUT',
+                       dest='output',
+                       help='Optional file to append output to.')
+    options = parser.parse_args()
 
     if not options.filename:
         parser.error('Filename is required.')
@@ -111,10 +116,13 @@ def main():
     else:
         fh = sys.stdout
 
-    if options.summed:
-        fmt = summed_output
+    test_type = get_test_type(iperf)
+    if test_type == "TCP":
+        fmt = generate_csv_for_tcp_test
+    elif test_type == "UDP":
+        fmt = generate_csv_for_udp_test
     else:
-        fmt = generate_output
+        raise Iperf3ToGnuplotException("unknown test type %s" % test_type)
 
     for i in fmt(iperf, options):
         fh.write(i)

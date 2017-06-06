@@ -12,6 +12,7 @@ PORT=$1
 
 iperf3 --server \
        --port ${PORT} \
-       --one-off
+       --one-off \
+       --json
 
 # vim: ai ts=2 sw=2 et sts=2 ft=sh

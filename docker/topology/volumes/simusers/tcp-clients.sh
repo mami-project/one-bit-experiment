@@ -16,7 +16,7 @@ TOS=$5
 LOGDIR=$6
 EXP_ID=$7
 
-LOGFILE="${LOGDIR}/exp_${EXP_ID}_${SRV}:${PORT}_${NFLOWS}:udp_tos:${TOS}--$(uuidgen)"
+LOGFILE="${LOGDIR}/exp_${EXP_ID}_${SRV}:${PORT}_${NFLOWS}:tcp_tos:${TOS}--$(uuidgen)"
 
 iperf3 --client ${SRV} \
        --port ${PORT} \
@@ -24,6 +24,7 @@ iperf3 --client ${SRV} \
        --parallel ${NFLOWS} \
        --tos ${TOS} \
        --json \
+       --get-server-output \
        --logfile "${LOGFILE}"
 
 # vim: ai ts=2 sw=2 et sts=2 ft=sh
