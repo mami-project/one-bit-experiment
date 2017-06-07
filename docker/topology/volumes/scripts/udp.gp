@@ -1,4 +1,4 @@
-set terminal term font "arial,9"
+set terminal term font "arial,9" size 1024,1024
 
 set xlabel "t (sec)"
 

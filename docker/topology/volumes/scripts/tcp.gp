@@ -1,4 +1,4 @@
-set terminal term font "arial,9"
+set terminal term font "arial,9" size 1024,1024
 
 set xlabel "t (sec)"
 
@@ -13,7 +13,7 @@ set multiplot layout 2,2 title "iperf3 TCP flow (sd=$3)"
 
 # Bandwidth
 set yrange [0:100000000]
-set format y '%.0s%cbps'
+set format y '%.01s%cbps'
 set ylabel "bandwidth (Mbps)"
 plot data using 1:5 title "bw" with linespoints ls 1
 unset yrange
@@ -21,10 +21,10 @@ unset yrange
 # Retransmissions
 unset format
 set ylabel "retransmissions"
-plot data using 1:6 title "rtns" with linespoints ls 1
+plot data using 1:6 title "rtns" with boxes ls 1
 
 # Sender congestion window
-set format y '%.0s%cB'
+set format y '%.01s%cB'
 set ylabel "sender cwnd"
 plot data using 1:7 title "snd cwnd" with linespoints ls 1
 

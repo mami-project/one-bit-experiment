@@ -28,9 +28,9 @@ get_duration() {
 # $1: file to snip
 # $2: start
 # $3: length
-snip() {
+snip_and_rebase() {
   awk -v start=$2 -v duration=$3 -F',' \
-    '$1 > start && $1 <= start + duration { print }' \
+    '$1 > start && $1 <= start + duration { $1 -= start ; print $0 }' \
     "$1"
 }
 
@@ -49,7 +49,7 @@ main() {
   start=$(get_start "${ref}")
   duration=$(get_duration "${ref}")
 
-  snip "${toalign}" "${start}" "${duration}"
+  snip_and_rebase "${toalign}" "${start}" "${duration}"
 }
 
 main "$@"
