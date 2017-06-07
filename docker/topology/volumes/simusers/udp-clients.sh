@@ -21,6 +21,7 @@ BW=$8
 PACKET_SIZE=$9
 
 LOGFILE="${LOGDIR}/exp_${EXP_ID}_${SRV}:${PORT}_${NFLOWS}:udp_tos:${TOS}_bw:${BW}_packetlen:${PACKET_SIZE}b--$(uuidgen)"
+POLL_INTERVAL=0.1
 
 iperf3 --client ${SRV} \
        --port ${PORT} \
@@ -29,6 +30,7 @@ iperf3 --client ${SRV} \
        --length ${PACKET_SIZE} \
        --time ${DURATION} \
        --parallel ${NFLOWS} \
+       --interval ${POLL_INTERVAL} \
        --tos ${TOS} \
        --json \
        --get-server-output \

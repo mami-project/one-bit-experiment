@@ -17,11 +17,13 @@ LOGDIR=$6
 EXP_ID=$7
 
 LOGFILE="${LOGDIR}/exp_${EXP_ID}_${SRV}:${PORT}_${NFLOWS}:tcp_tos:${TOS}--$(uuidgen)"
+POLL_INTERVAL=0.1
 
 iperf3 --client ${SRV} \
        --port ${PORT} \
        --time ${DURATION} \
        --parallel ${NFLOWS} \
+       --interval ${POLL_INTERVAL} \
        --tos ${TOS} \
        --json \
        --get-server-output \

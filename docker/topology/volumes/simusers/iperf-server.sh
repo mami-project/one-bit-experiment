@@ -9,10 +9,12 @@ then
 fi
 
 PORT=$1
+POLL_INTERVAL=0.1
 
 iperf3 --server \
        --port ${PORT} \
        --one-off \
-       --json
+       --json \
+       --interval ${POLL_INTERVAL}
 
 # vim: ai ts=2 sw=2 et sts=2 ft=sh

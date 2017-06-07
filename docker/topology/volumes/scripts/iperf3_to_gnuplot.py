@@ -21,8 +21,9 @@ def get_test_type(json):
 
 def generate_csv_for_udp_test(json, options):
     """CSV format a UDP report using server view"""
-    csv_header = '# {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}\n'.format(
-        'timestamp',
+    csv_header = '# {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}\n'.format(
+        'reltime',
+        'abstime',
         'socket',
         'bytes_transferred',
         'bits_per_second',
@@ -38,7 +39,8 @@ def generate_csv_for_udp_test(json, options):
     for interval in json['server_output_json']['intervals']:
         for stream in interval['streams']:
             abs_ts = t0 + stream['start']
-            row = '{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}\n'.format(
+            row = '{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}\n'.format(
+                stream['start'],
                 abs_ts,
                 stream['socket'],
                 stream['bytes'],
@@ -52,8 +54,9 @@ def generate_csv_for_udp_test(json, options):
 
 def generate_csv_for_tcp_test(json, options):
     """CSV format a TCP report using client view"""
-    csv_header = '# {0}, {1}, {2}, {3}, {4}, {5}, {6}\n'.format(
-        'timestamp',
+    csv_header = '# {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}\n'.format(
+        'reltime',
+        'abstime',
         'socket',
         'bytes_transferred',
         'bits_per_second',
@@ -69,7 +72,8 @@ def generate_csv_for_tcp_test(json, options):
         for stream in interval['streams']:
             abs_ts = t0 + stream['start']
             rtt_ms = stream['rtt'] / 1000
-            row = '{0}, {1}, {2}, {3}, {4}, {5}, {6}\n'.format(
+            row = '{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}\n'.format(
+                stream['start'],
                 abs_ts,
                 stream['socket'],
                 stream['bytes'],
