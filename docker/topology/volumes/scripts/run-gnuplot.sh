@@ -14,8 +14,9 @@ TERM=$2
 SPEC=$3
 
 BASENAME="$(basename "${DATA}" .csv)"
+DIRNAME="$(dirname "${DATA}")"
 
 gnuplot -e "data='${DATA}'" \
 	-e "term='${TERM}'" \
 	${SPEC} \
-	> "${BASENAME}.${TERM}"
+	> "${DIRNAME}/${BASENAME}.${TERM}"

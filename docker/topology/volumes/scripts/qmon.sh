@@ -2,14 +2,14 @@
 
 SERVICE=qmon
 
-readonly CONF="./qmon.conf"
-readonly BGQMON="./bgqmon.sh"
+readonly CONF="/root/share/scripts/qmon.conf"
+readonly BGQMON="/root/share/scripts/bgqmon.sh"
 readonly PIDFILE="/var/run/qmon.pid"
 readonly OUTFILE="/var/run/qmon.out"
 readonly CSVFILE="/var/run/qmon.csv"
 
 read_conf() {
-  echo "Reading configuration from ${CONF}"
+#  ( >&2 echo Reading configuration from "${CONF}" )
   source "${CONF}"
 }
 
@@ -46,7 +46,7 @@ stop() {
 
   local pid="$(cat "${PIDFILE}")"
 
-  echo "killing ${SERVICE} (pid=${pid})"
+#  ( >&2 echo "killing ${SERVICE} (pid=${pid})" )
 
   kill -TERM ${pid} > /dev/null 2>&1
 
@@ -77,11 +77,15 @@ main() {
     stop)
       stop
       ;;
+    restart)
+      stop
+      start
+      ;;
     status)
       status
       ;;
     *)
-      echo "Usage: $(basename $0) {start|stop|status}"
+      echo "Usage: $(basename $0) {start|stop|restart|status}"
       exit 1
       ;;
   esac

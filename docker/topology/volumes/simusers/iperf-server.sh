@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eu
+set -eux
 
 if [ $# != 1 ]
 then
@@ -14,6 +14,7 @@ POLL_INTERVAL=0.1
 iperf3 --server \
        --port ${PORT} \
        --one-off \
+       --daemon \
        --json \
        --interval ${POLL_INTERVAL}
 

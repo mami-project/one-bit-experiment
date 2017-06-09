@@ -18,7 +18,7 @@
 set -e
 set -o pipefail
 
-readonly CONF="./lte.conf"
+readonly CONF="/root/share/config/lte.conf"
 
 cleanup() {
   for k in "${!IFACES[@]}"
@@ -81,7 +81,7 @@ stop() {
 }
 
 main() {
-  echo Reading configuration from "${CONF}"
+  ( >&2 echo Reading configuration from "${CONF}" )
   source "${CONF}"
 
   case "$1" in
@@ -91,11 +91,15 @@ main() {
     stop)
       stop
       ;;
+    restart)
+      stop
+      start
+      ;;
     status)
       status
       ;;
     *)
-      echo "Usage: $(basename $0) {start|stop|status}"
+      echo "Usage: $(basename $0) {start|stop|restart|status}"
       exit 1
       ;;
   esac

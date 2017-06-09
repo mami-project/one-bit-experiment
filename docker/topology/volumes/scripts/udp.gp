@@ -5,7 +5,7 @@ set xlabel "t (sec)"
 set xtics nomirror
 set ytics nomirror
 set grid xtics ytics
-set xrange [0:60]
+#set xrange [0:60]
 
 set style line 1 lc rgb "#1E90FF" lt 1 lw 1 pt 1 ps 0.5
 

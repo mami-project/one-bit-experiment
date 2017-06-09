@@ -1,10 +1,10 @@
 #!/bin/bash
 
-set -eu
+set -eux
 
-if [ $# != 9 ]
+if [ $# != 8 ]
 then
-  echo "$(basename $0) <server> <port> <#parallel flows> <duration (sec)> <tos mark> <log dir> <experiment id> <bandwidth> <packet size>"
+  echo "$(basename $0) <server> <port> <#parallel flows> <duration (sec)> <tos mark> <log file> <bandwidth> <packet size>"
   echo
   echo "(E.g., to simulate a VoIP call use bandwidth=64000 and packet_size=128)"
   exit 1
@@ -15,12 +15,10 @@ PORT=$2
 NFLOWS=$3
 DURATION=$4
 TOS=$5
-LOGDIR=$6
-EXP_ID=$7
-BW=$8
-PACKET_SIZE=$9
+LOGFILE=$6
+BW=$7
+PACKET_SIZE=$8
 
-LOGFILE="${LOGDIR}/exp_${EXP_ID}_${SRV}:${PORT}_${NFLOWS}:udp_tos:${TOS}_bw:${BW}_packetlen:${PACKET_SIZE}b--$(uuidgen)"
 POLL_INTERVAL=0.1
 
 iperf3 --client ${SRV} \

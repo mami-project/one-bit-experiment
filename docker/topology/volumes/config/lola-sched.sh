@@ -10,7 +10,7 @@
 set -e
 set -o pipefail
 
-readonly CONF="./lola-sched.conf"
+readonly CONF="/root/share/config/lola-sched.conf"
 
 # Unmarked traffic class (no delay budget)
 readonly DEFAULT_CLASS_ID="999"
@@ -32,41 +32,41 @@ cleanup() {
 add_root() {
   local iface="$1"
   local class_id="$2"
-  local bandwidth="$3"
+  local bandwidth_max="$3"
 
   tc qdisc add dev ${iface} root handle 1: hfsc default ${class_id}
 
   # The parent class takes all the avaialable bandwidth
   tc class add dev ${iface} parent 1: classid 1:1 \
-    hfsc sc rate ${bandwidth} \
-         ul rate ${bandwidth}
+    hfsc sc rate ${bandwidth_max} \
+         ul rate ${bandwidth_max}
 }
 
 add_dflt_child() {
   local iface="$1"
   local class_id="$2"
-  local bandwidth="$3"
-  local rate="$4"
+  local bandwidth_max="$3"
+  local bandwidth_share="$4"
 
   tc class add dev ${iface} parent 1:1 classid 1:${class_id} \
-    hfsc ls rate ${rate} \
-         ul rate ${bandwidth} 
+    hfsc ls rate ${bandwidth_share} \
+         ul rate ${bandwidth_max}
 
   tc qdisc add dev ${iface} parent 1:${class_id} handle ${class_id} \
-    sfq quantum 1500 perturb 10
+    sfq quantum 1500 perturb 120
 }
 
 add_lola_child() {
   local iface="$1"
   local class_id="$2"
-  local bandwidth="$3"
-  local rate="$4"
+  local bandwidth_max="$3"
+  local bandwidth_share="$4"
   local max_delay="$5"
   local dscp="$6"
 
   tc class add dev ${iface} parent 1:1 classid 1:${class_id} \
-    hfsc sc dmax ${max_delay} rate ${rate} \
-         ul rate ${bandwidth}
+    hfsc sc m1 ${bandwidth_max} d ${max_delay} m2 ${bandwidth_share} \
+         ul rate ${bandwidth_max}
 
   tc filter add dev ${iface} parent 1: protocol ip prio ${class_id} u32 \
     match ip tos ${dscp} 0xff flowid 1:${class_id}
@@ -96,7 +96,7 @@ status() {
 }
 
 read_conf() {
-  echo Reading configuration from "${CONF}"
+  ( >&2 echo Reading configuration from "${CONF}" )
   source "${CONF}"
 }
 
@@ -110,11 +110,15 @@ main() {
     stop)
       stop
       ;;
+    restart)
+      stop
+      start
+      ;;
     status)
       status
       ;;
     *)
-      echo "Usage: $(basename $0) {start|stop|status}"
+      echo "Usage: $(basename $0) {start|stop|restart|status}"
       exit 1
       ;;
   esac

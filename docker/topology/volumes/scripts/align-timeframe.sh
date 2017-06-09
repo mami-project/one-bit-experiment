@@ -22,7 +22,7 @@ get_start() {
 
 # $1: ref
 get_duration() {
-  cat "$1" | "${JQ}" '.server_output_json.end.sum_received.end'
+  cat "$1" | "${JQ}" '.server_output_json.end.sum.end'
 }
 
 # $1: file to snip
