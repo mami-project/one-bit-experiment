@@ -23,9 +23,9 @@ unset format
 set ylabel "sent packets (every 100ms)"
 plot data using 1:6 title "packets" with steps ls 1
 
-# Lost packets
-set ylabel "lost packets"
-plot data using 1:7 title "lost packets" with linespoints ls 1
+# Packet loss (%)
+set ylabel "lost packets (percent)"
+plot data using 1:8 title "lost packets (%)" with linespoints ls 1
 
 # Jitter
 unset format

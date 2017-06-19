@@ -1,10 +1,10 @@
 #!/bin/bash
 
-set -eu
+set -eux
 
-if [ $# != 7 ]
+if [ $# != 6 ]
 then
-  echo "$(basename $0) <server> <port> <#parallel flows> <duration (sec)> <tos mark> <log dir> <experiment id>"
+  echo "$(basename $0) <server> <port> <#parallel flows> <duration (sec)> <tos mark> <log file>"
   exit 1
 fi
 
@@ -13,10 +13,8 @@ PORT=$2
 NFLOWS=$3
 DURATION=$4
 TOS=$5
-LOGDIR=$6
-EXP_ID=$7
+LOGFILE=$6
 
-LOGFILE="${LOGDIR}/exp_${EXP_ID}_${SRV}:${PORT}_${NFLOWS}:tcp_tos:${TOS}--$(uuidgen)"
 POLL_INTERVAL=0.1
 
 iperf3 --client ${SRV} \

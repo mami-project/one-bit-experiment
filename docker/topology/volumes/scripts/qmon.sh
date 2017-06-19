@@ -33,7 +33,9 @@ start() {
     return 1
   fi
 
-  nohup ${BGQMON} ${QMON_IFACE} ${QMON_POLL_INTERVAL} ${OUTFILE} &
+  cp /dev/null "${OUTFILE}"
+
+  nohup ${BGQMON} ${QMON_IFACE} ${QMON_POLL_INTERVAL} "${OUTFILE}" &
   echo $! > "${PIDFILE}"
 }
 

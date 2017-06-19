@@ -31,12 +31,14 @@ cleanup() {
 
 add_root() {
   local iface="$1"
-  local class_id="$2"
+  local default_class_id="$2"
   local bandwidth_max="$3"
 
-  tc qdisc add dev ${iface} root handle 1: hfsc default ${class_id}
+  # Add the root HFSC qdisc and assign and make the default class the fallback
+  # if the packet has no LoLa marking.
+  tc qdisc add dev ${iface} root handle 1: hfsc default ${default_class_id}
 
-  # The parent class takes all the avaialable bandwidth
+  # Also, let the parent class take all the available bandwidth
   tc class add dev ${iface} parent 1: classid 1:1 \
     hfsc sc rate ${bandwidth_max} \
          ul rate ${bandwidth_max}
@@ -47,16 +49,42 @@ add_dflt_child() {
   local class_id="$2"
   local bandwidth_max="$3"
   local bandwidth_share="$4"
+  local max_delay="$5"
 
   tc class add dev ${iface} parent 1:1 classid 1:${class_id} \
-    hfsc ls rate ${bandwidth_share} \
+    hfsc ls m1 0 d ${max_delay} m2 ${bandwidth_share} \
          ul rate ${bandwidth_max}
+#    hfsc ls rate ${bandwidth_share} \
+#         ul rate ${bandwidth_max}
 
   tc qdisc add dev ${iface} parent 1:${class_id} handle ${class_id} \
     sfq quantum 1500 perturb 120
 }
 
-add_lola_child() {
+add_lo_child() {
+  local iface="$1"
+  local class_id="$2"
+  local bandwidth_max="$3"
+  local bandwidth_share="$4"
+  local max_delay="$5"
+  local dscp="$6"
+
+  tc class add dev ${iface} parent 1:1 classid 1:${class_id} \
+    hfsc sc m1 0 d ${max_delay} m2 ${bandwidth_share} \
+         ul rate ${bandwidth_max}
+# use link-share instead of ls + rt (NOPE!)
+#  tc class add dev ${iface} parent 1:1 classid 1:${class_id} \
+#    hfsc sc m1 ${bandwidth_share} d ${max_delay} m2 ${bandwidth_share} \
+#         ul rate ${bandwidth_max}
+
+  tc filter add dev ${iface} parent 1: protocol ip prio ${class_id} u32 \
+    match ip tos ${dscp} 0xff flowid 1:${class_id}
+
+  tc qdisc add dev ${iface} parent 1:${class_id} handle ${class_id} \
+    sfq quantum 1500 perturb 10
+}
+
+add_la_child() {
   local iface="$1"
   local class_id="$2"
   local bandwidth_max="$3"
@@ -72,15 +100,15 @@ add_lola_child() {
     match ip tos ${dscp} 0xff flowid 1:${class_id}
 
   tc qdisc add dev ${iface} parent 1:${class_id} handle ${class_id} \
-    sfq quantum 1500 perturb 120
+    sfq quantum 1500 perturb 10
 }
 
 start() {
   echo Adding LoLa sched on ${IFACE}
   add_root ${IFACE} ${DEFAULT_CLASS_ID} ${BW}
-  add_lola_child ${IFACE} ${LA_CLASS_ID} ${BW} ${BW_SHARE} ${LA_DELAY} ${LA_DSCP_CODE}
-  add_lola_child ${IFACE} ${LO_CLASS_ID} ${BW} ${BW_SHARE} ${LO_DELAY} ${LO_DSCP_CODE}
-  add_dflt_child ${IFACE} ${DEFAULT_CLASS_ID} ${BW} ${BW_SHARE}
+  add_la_child ${IFACE} ${LA_CLASS_ID} ${BW} ${BW_SHARE_LA} ${LA_HFSC_DELAY} ${LA_DSCP_CODE}
+  add_lo_child ${IFACE} ${LO_CLASS_ID} ${BW} ${BW_SHARE_LO} ${LO_HFSC_DELAY} ${LO_DSCP_CODE}
+  add_dflt_child ${IFACE} ${DEFAULT_CLASS_ID} ${BW} ${BW_SHARE} ${DFLT_HFSC_DELAY}
 }
 
 stop() {

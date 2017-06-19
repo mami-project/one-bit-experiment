@@ -34,4 +34,6 @@ iperf3 --client ${SRV} \
        --get-server-output \
        --logfile "${LOGFILE}"
 
+exit 0
+
 # vim: ai ts=2 sw=2 et sts=2 ft=sh

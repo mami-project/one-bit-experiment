@@ -16,21 +16,23 @@ docker_up
 config_lte
 config_lola
 start_lola_monitor
+
 readonly SUT_IPERF_PORT=8080
 start_iperf_server sut_mobile ${SUT_IPERF_PORT}
-readonly NFLOWS=1
-readonly DURATION=30
-readonly TOS_MARK=0x14
+
 readonly LOGFILE="iperf-stats.json"
-start_sut_voip_client ${SUT_IPERF_PORT} \
-  ${NFLOWS} \
-  ${TOS_MARK} \
-  ${DURATION} \
+start_sut_voip_clients \
+  ${SUT_IPERF_PORT} \
+  1 \
+  ${TEST_FUN_LA_MARK} \
+  30 \
   "${C_RESDIR}/${LOGFILE}"
 
-readonly LOLA_RAW_CSV="${H_RESDIR}/qmon.csv"
-stop_lola_monitor "${LOLA_RAW_CSV}"
-plot_lola_stats "${H_RESDIR}/${LOGFILE}" "${LOLA_RAW_CSV}"
+wait_background_runners
+
+readonly LOLA_CSV="${H_RESDIR}/qmon.csv"
+stop_lola_monitor "${LOLA_CSV}"
+plot_lola_stats "${H_RESDIR}/${LOGFILE}" "${LOLA_CSV}"
 plot_iperf_output "${LOGFILE}" "${H_RESDIR}" udp
 
 open_result_dir ${H_RESDIR}
