@@ -13,6 +13,7 @@ RUN apk add --no-cache \
       iputils \
       man \
       tcpdump \
+      tshark \
       util-linux
 
 # Manually bugfix traffic control distributions.  They are actually installed
