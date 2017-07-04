@@ -1,6 +1,7 @@
 TEST_FUN_LOLA_Q_HOST="enb_downstream_sched"
 TEST_FUN_LTE_SHAPER_HOST="enb_traffic_shaper"
-TEST_FUN_BROWSER="/Applications/FirefoxNightly.app"
+#TEST_FUN_BROWSER="/Applications/FirefoxNightly.app"
+TEST_FUN_BROWSER="/usr/bin/firefox"
 
 TEST_FUN_LO_MARK=0x04
 TEST_FUN_LA_MARK=0x14
@@ -18,21 +19,71 @@ config_lte() {
     /root/share/config/lte.sh restart
 }
 
+# Configure LoLa on both upstream and downstream scheduler nodes
 config_lola() {
-  docker-compose exec ${TEST_FUN_LOLA_Q_HOST} \
-    /root/share/config/lola-sched.sh restart
+  for node in upstream downstream
+  do
+    docker-compose exec enb_${node}_sched \
+      env CONF=/root/share/config/lola-sched-${node}.conf \
+        /root/share/config/lola-sched.sh restart
+  done
 }
 
+config_pie() {
+  for node in upstream downstream
+  do
+    docker-compose exec enb_${node}_sched \
+      env CONF=/root/share/config/pie-sched-${node}.conf \
+        /root/share/config/pie-sched.sh restart
+  done
+}
+
+config_default() {
+  for node in upstream downstream
+  do
+    docker-compose exec enb_${node}_sched \
+      env CONF=/root/share/config/default-sched-${node}.conf \
+        /root/share/config/default-sched.sh restart
+  done
+}
+
+# The LoLa monitor only runs on the downstream scheduler
 start_lola_monitor() {
-  docker-compose exec ${TEST_FUN_LOLA_Q_HOST} \
+  docker-compose exec -T -d ${TEST_FUN_LOLA_Q_HOST} \
     /root/share/scripts/qmon.sh restart
 }
 
+# The LoLa monitor only runs on the downstream scheduler
 # $1: CSV file to save the results
 stop_lola_monitor() {
   docker-compose exec ${TEST_FUN_LOLA_Q_HOST} \
     /root/share/scripts/qmon.sh stop \
       2>/dev/null > "$1"
+}
+
+# $1: directory where to put the measurements
+# $2-: UDP ports of flows to monitor
+start_flow_monitor() {
+  local outdir="$1"
+  local ports="${@:2}"
+
+  docker-compose exec -T -d ${TEST_FUN_LOLA_Q_HOST} \
+    env BASEDIR="${outdir}" /root/share/scripts/flow-qmon.sh start ${ports}
+}
+
+stop_flow_monitor() {
+  local outdir="$1"
+  local ports="${@:2}"
+
+  docker-compose exec -T ${TEST_FUN_LOLA_Q_HOST} \
+    env BASEDIR="${outdir}" /root/share/scripts/flow-qmon.sh stop ${ports}
+}
+
+# $@: UDP ports of flows to monitor
+start_flows_monitor() {
+  local ports="$@"
+  docker-compose exec ${TEST_FUN_LOLA_Q_HOST} \
+    /root/share/scripts/flow-qmon.sh start ${ports}
 }
 
 # $1: JSON file (name only)
@@ -67,6 +118,34 @@ plot_lola_stats() {
   volumes/scripts/run-gnuplot.sh "${out}" svg volumes/scripts/lola-queue.gp
 }
 
+# $1: where to find data and plot stuff
+# $2-: pairs of UDP ports and label
+plot_flow_queue_delay() {
+  local outdir="$1"
+  local -a pairs=(${@:2})
+
+  local gpfile="${outdir}/delays.gp"
+
+cat << 'EOF' > "${gpfile}"
+set terminal svg
+set logscale y
+set grid xtics ytics
+set xlabel 'packet number'
+set ylabel 'delay (sec)'
+plot \
+EOF
+
+  for ((i = 0; i < ${#pairs[@]}; i += 2))
+  do
+    local port=${pairs[i]}
+    local label=${pairs[i+1]}
+
+    echo "'${port}-delay.dat' title '${label}' with lines smooth bezier, \\" >> "${gpfile}"
+  done
+
+  ( cd ${outdir} && ls -l && gnuplot $(basename "${gpfile}") > queue-delays.svg )
+}
+
 # $1: docker host
 # $2-...: transport ports
 start_iperf_servers() {
@@ -81,7 +160,7 @@ start_iperf_servers() {
   do
     test_fun_msg "starting iperf server on ${container}:${port}"
 
-    docker-compose exec "${container}" \
+    docker-compose exec -T "${container}" \
       /root/share/simusers/iperf-server.sh ${port}
   done
 }
@@ -119,7 +198,7 @@ start_udp_clients() {
       ${pkt_sz}"
 
   # -T is to work around https://github.com/docker/compose/pull/4737
-  docker-compose exec -T -d ${container} bash -c "${cmd}" &
+  docker-compose exec -T ${container} bash -c "${cmd}" &
 }
 
 # $1: server port
@@ -180,7 +259,7 @@ start_tcp_clients() {
       ${logfile}"
 
   # -T is to work around https://github.com/docker/compose/pull/4737
-  docker-compose exec -T -d ${container} bash -c "${cmd}" &
+  docker-compose exec -T ${container} bash -c "${cmd}" &
 }
 
 # TCP tg-sgilan -> tg-mobile
@@ -200,7 +279,8 @@ wait_background_runners() {
 
 # $1: results directory
 open_result_dir() {
-  open -a "${TEST_FUN_BROWSER}" "$1"
+#  open -a "${TEST_FUN_BROWSER}" "$1"
+  "${TEST_FUN_BROWSER}" "file:///$(pwd)/$1"
 }
 
 # vim: ai ts=2 sw=2 et sts=2 ft=sh

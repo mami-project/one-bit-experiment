@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 #
 # use tcpdump instead of tshark for the raw capture as it's 10x faster at
 # starting up.
@@ -8,6 +8,7 @@ set -o pipefail
 
 SERVICE="$(basename $0)"
 
+# TODO put this in a config file
 declare -rxA IFACES=(
   [in]=eth1
   [out]=eth0
@@ -15,8 +16,8 @@ declare -rxA IFACES=(
 
 # Enough to get IP & transport headers
 readonly SNAPLEN="96"
-# Where to put the captures
-readonly BASEDIR="/tmp"
+# Where to put the captures (can be overridden in the environment)
+readonly BASEDIR=${BASEDIR:-"/tmp"}
 
 cleanse() {
   # XXX Assume only one flow monitor is running at any point in time
@@ -29,7 +30,7 @@ make_filter() {
 
   for port in "$@"
   do
-    filter="${filter} and udp port ${port}"
+    filter="${filter} or udp port ${port}"
   done
 
   echo "${filter}"

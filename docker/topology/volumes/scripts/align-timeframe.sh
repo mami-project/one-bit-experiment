@@ -5,7 +5,7 @@ set -o pipefail
 
 PROG="$(basename $0)"
 
-JQ="/usr/local/Cellar/jq/1.5_2/bin/jq"
+JQ="$(type -p jq)"
 
 check_tools() {
   if [ ! -x "${JQ}" ]

@@ -10,7 +10,7 @@
 set -e
 set -o pipefail
 
-readonly CONF="/root/share/config/lola-sched.conf"
+readonly CONF=${CONF:-"/root/share/config/lola-sched.conf"}
 
 # Unmarked traffic class (no delay budget)
 readonly DEFAULT_CLASS_ID="999"

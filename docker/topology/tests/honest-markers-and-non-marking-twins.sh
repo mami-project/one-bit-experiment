@@ -14,8 +14,10 @@ mkdir -p "${H_RESDIR}"
 
 docker_up
 config_lte
-config_lola
-start_lola_monitor
+#config_lola
+config_pie
+#start_lola_monitor
+#start_pie_monitor
 
 readonly SUT_IPERF_PORT_1=8080
 readonly SUT_IPERF_PORT_2=8082
@@ -71,8 +73,10 @@ start_tg_tcp_clients \
 wait_background_runners
 
 readonly LOLA_CSV="${H_RESDIR}/qmon.csv"
-stop_lola_monitor "${LOLA_CSV}"
-plot_lola_stats "${H_RESDIR}/${UDP_LOGFILE_1}" "${LOLA_CSV}"
+#stop_lola_monitor "${LOLA_CSV}"
+#stop_pie_monitor "${LOLA_CSV}"
+#plot_lola_stats "${H_RESDIR}/${UDP_LOGFILE_1}" "${LOLA_CSV}"
+#plot_pie_stats "${H_RESDIR}/${UDP_LOGFILE_1}" "${LOLA_CSV}"
 plot_iperf_output "${TCP_LOGFILE_1}" "${H_RESDIR}" tcp
 plot_iperf_output "${TCP_LOGFILE_2}" "${H_RESDIR}" tcp
 plot_iperf_output "${UDP_LOGFILE_1}" "${H_RESDIR}" udp
